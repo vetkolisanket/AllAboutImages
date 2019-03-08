@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AllAboutImages</string>
+    <string name="scale_type">Scale Type</string>
 </resources>
