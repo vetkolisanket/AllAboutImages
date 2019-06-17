@@ -16,6 +16,12 @@
             android:layout_height="wrap_content"
             android:text="@string/scale_type"/>
 
+        <Button
+            android:id="@+id/btnImageMetadata"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/image_metadata"/>
+
     </LinearLayout>
 
 </ScrollView>
