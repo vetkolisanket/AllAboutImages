@@ -13,7 +13,7 @@ class MainActivity : AppCompatActivity() {
         init()
     }
 
-    fun init() {
-        btnImageMetadata.setOnClickListener { ImageMetadataActivity.newIntent(this) }
+    private fun init() {
+        btnImageMetadata.setOnClickListener { startActivity(ImageMetadataActivity.newIntent(this)) }
     }
 }
