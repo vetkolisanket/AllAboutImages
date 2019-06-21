@@ -12,6 +12,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
+import android.support.v4.content.FileProvider
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
@@ -105,7 +106,7 @@ class ImageMetadataActivity : AppCompatActivity() {
 
             // Continue only if the File was successfully created
             if (photoFile != null) {
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile))
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(applicationContext, "$packageName.fileprovider", photoFile))
                 startActivityForResult(cameraIntent, REQUEST_IMAGE_CAPTURE)
             }
         }
@@ -116,7 +117,7 @@ class ImageMetadataActivity : AppCompatActivity() {
         // Create an image file name
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_" + timeStamp + "_"
-        val storageDir = Environment.getExternalStoragePublicDirectory(
+        val storageDir = getExternalFilesDir(
                 Environment.DIRECTORY_PICTURES)
         val image = File.createTempFile(
                 imageFileName, // prefix
