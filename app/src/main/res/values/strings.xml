@@ -3,4 +3,5 @@
     <string name="scale_type">Scale Type</string>
     <string name="image_metadata">Image Metadata</string>
     <string name="camera">Camera</string>
+    <string name="gallery">Gallery</string>
 </resources>
