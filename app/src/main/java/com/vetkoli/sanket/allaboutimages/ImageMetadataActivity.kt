@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.support.media.ExifInterface
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.FileProvider
@@ -49,10 +50,28 @@ class ImageMetadataActivity : AppCompatActivity() {
         init()
     }
 
+    private lateinit var exifInterface: ExifInterface
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK) {
             try {
-                mImageBitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, Uri.parse(mCurrentPhotoPath))
+                val uri = Uri.parse(mCurrentPhotoPath)
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream != null) {
+                    exifInterface = ExifInterface(inputStream)
+                    val orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+                    when (orientation) {
+                        ExifInterface.ORIENTATION_NORMAL -> tvExifInfo.append("Orientation normal")
+                        ExifInterface.ORIENTATION_UNDEFINED -> tvExifInfo.append("Orientation undefined")
+                        ExifInterface.ORIENTATION_ROTATE_90 -> tvExifInfo.append("Orientation 90")
+                        ExifInterface.ORIENTATION_ROTATE_180 -> tvExifInfo.append("Orientation 180")
+                        ExifInterface.ORIENTATION_ROTATE_270 -> tvExifInfo.append("Orientation 270")
+                    }
+                    tvExifInfo.append("\n")
+                    tvExifInfo.append("Latitude: " + exifInterface.latLong!![0].toString() + "\nLongitude: " + exifInterface.latLong!![1].toString())
+                    inputStream.close()
+                }
+                mImageBitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
                 imageView.setImageBitmap(mImageBitmap)
             } catch (e: IOException) {
                 e.printStackTrace()
