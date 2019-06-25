@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.os.Parcelable
 import android.provider.MediaStore
 import android.support.media.ExifInterface
 import android.support.v4.app.ActivityCompat
@@ -24,14 +25,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-
-
 class ImageMetadataActivity : AppCompatActivity() {
 
     companion object {
 
-        const val REQUEST_IMAGE_CAPTURE = 1
+        const val SELECT_IMAGE = 1
         const val MY_CAMERA_PERMISSION_CODE = 101
+
+        const val TAG = "ImageMetadataActivity"
 
         fun newIntent(context: Context): Intent {
             return Intent(context, ImageMetadataActivity::class.java)
@@ -40,6 +41,7 @@ class ImageMetadataActivity : AppCompatActivity() {
 
     private var mImageBitmap: Bitmap? = null
     private var mCurrentPhotoPath: String? = null
+    private lateinit var photoFile: File
 
     //Lifecycle
 
@@ -53,9 +55,9 @@ class ImageMetadataActivity : AppCompatActivity() {
     private lateinit var exifInterface: ExifInterface
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK) {
+        if (requestCode == SELECT_IMAGE && resultCode == Activity.RESULT_OK) {
             try {
-                val uri = Uri.parse(mCurrentPhotoPath)
+                val uri = getImageUri(resultCode, data)
                 val inputStream = contentResolver.openInputStream(uri)
                 if (inputStream != null) {
                     exifInterface = ExifInterface(inputStream)
@@ -99,12 +101,11 @@ class ImageMetadataActivity : AppCompatActivity() {
     }
 
     private fun initOnclickListeners() {
-        btnCamera.setOnClickListener { onCameraBtnClick() }
+        btnSelectImage.setOnClickListener { onSelectImageBtnClick() }
     }
 
-    private fun onCameraBtnClick() {
-        if (ContextCompat.checkSelfPermission( this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-        {
+    private fun onSelectImageBtnClick() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), MY_CAMERA_PERMISSION_CODE);
         } else {
             requestImageCapture()
@@ -112,22 +113,10 @@ class ImageMetadataActivity : AppCompatActivity() {
     }
 
     private fun requestImageCapture() {
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        if (cameraIntent.resolveActivity(packageManager) != null) {
-            // Create the File where the photo should go
-            var photoFile: File? = null
-            try {
-                photoFile = createImageFile()
-            } catch (ex: IOException) {
-                // Error occurred while creating the File
-                Log.i("IMA", "IOException")
-            }
-
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(applicationContext, "$packageName.fileprovider", photoFile))
-                startActivityForResult(cameraIntent, REQUEST_IMAGE_CAPTURE)
-            }
+        photoFile = createImageFile()
+        val selectImageIntent = getPickImageIntent()
+        if (selectImageIntent!!.resolveActivity(packageManager) != null) {
+            startActivityForResult(selectImageIntent, SELECT_IMAGE)
         }
     }
 
@@ -147,6 +136,58 @@ class ImageMetadataActivity : AppCompatActivity() {
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = "file:" + image.absolutePath
         return image
+    }
+
+    private fun getPickImageIntent(): Intent? {
+        var chooserIntent: Intent? = null
+
+        var intentList: MutableList<Intent> = ArrayList()
+
+        val pickIntent = Intent(Intent.ACTION_PICK,
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        val takePhotoIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        takePhotoIntent.putExtra("return-data", true)
+        takePhotoIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(applicationContext, "$packageName.fileprovider", photoFile))
+        intentList = addIntentsToList(intentList, pickIntent)
+        intentList = addIntentsToList(intentList, takePhotoIntent)
+
+        if (intentList.size > 0) {
+            chooserIntent = Intent.createChooser(intentList.removeAt(intentList.size - 1),
+                    getString(R.string.pick_image_intent_text))
+            chooserIntent!!.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentList.toTypedArray<Parcelable>())
+        }
+
+        return chooserIntent
+    }
+
+    private fun addIntentsToList(list: MutableList<Intent>, intent: Intent): MutableList<Intent> {
+        val resInfo = packageManager.queryIntentActivities(intent, 0)
+        for (resolveInfo in resInfo) {
+            val packageName = resolveInfo.activityInfo.packageName
+            val targetedIntent = Intent(intent)
+            targetedIntent.setPackage(packageName)
+            list.add(targetedIntent)
+            Log.d(TAG, "Intent: " + intent.action + " package: " + packageName)
+        }
+        return list
+    }
+
+    private fun getImageUri(resultCode: Int, imageReturnedIntent: Intent?): Uri? {
+        var selectedImageUri: Uri? = null
+        if (resultCode == Activity.RESULT_OK) {
+            val isCamera = imageReturnedIntent == null ||
+                    imageReturnedIntent.data == null ||
+                    imageReturnedIntent.data!!.toString().contains(photoFile.toString())
+            if (isCamera) {
+                /** CAMERA  */
+                selectedImageUri = FileProvider.getUriForFile(applicationContext, "$packageName.fileprovider", photoFile)
+            } else {
+                /** ALBUM  */
+                selectedImageUri = imageReturnedIntent!!.data
+            }
+            Log.d(TAG, "selectedImageUri: " + selectedImageUri!!)
+        }
+        return selectedImageUri
     }
 
 }

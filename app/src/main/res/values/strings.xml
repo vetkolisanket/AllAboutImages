@@ -2,6 +2,6 @@
     <string name="app_name">AllAboutImages</string>
     <string name="scale_type">Scale Type</string>
     <string name="image_metadata">Image Metadata</string>
-    <string name="camera">Camera</string>
-    <string name="gallery">Gallery</string>
+    <string name="select_image">Select Image</string>
+    <string name="pick_image_intent_text">Select image using:</string>
 </resources>
